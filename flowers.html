@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Flowers</title>
+	<style>
+		:root {
+			--bg-base-1: #f3f1f2;
+			--bg-base-2: #efedef;
+			--blush-strong: rgba(244, 174, 211, 0.52);
+			--blush-soft: rgba(248, 198, 225, 0.35);
+		}
+
+		body {
+			background: #f8f5eb;
+			margin: 0;
+			min-height: 100vh;
+			overflow: hidden;
+			position: relative;
+		}
+
+		body::before {
+			content: '';
+			position: fixed;
+			inset: 0;
+			background:
+				radial-gradient(circle at 50% 48%, rgba(255, 145, 214, 0.75) 0%, rgba(255, 145, 214, 0.46) 14%, rgba(255, 145, 214, 0.12) 30%, rgba(255, 145, 214, 0) 48%),
+				radial-gradient(circle at 50% 48%, rgba(167, 154, 255, 0.68) 0%, rgba(167, 154, 255, 0.32) 18%, rgba(167, 154, 255, 0.08) 38%, rgba(167, 154, 255, 0) 60%),
+				radial-gradient(circle at 50% 48%, rgba(255, 248, 255, 0.48) 0%, rgba(255, 248, 255, 0.16) 26%, rgba(255, 248, 255, 0) 52%);
+			filter: blur(20px);
+			opacity: 1;
+			pointer-events: none;
+		}
+
+		body::after {
+			content: '';
+			position: fixed;
+			inset: 0;
+			background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 45%);
+			pointer-events: none;
+		}
+
+		.main-stage {
+			position: relative;
+			min-height: 100vh;
+			display: grid;
+			place-items: center;
+			padding: 32px;
+			box-sizing: border-box;
+		}
+
+		.center-image {
+			position: relative;
+			z-index: 10;
+			width: min(50vw, 480px);
+			height: min(30vh, 260px);
+			display: grid;
+			place-items: center;
+			pointer-events: none;
+		}
+
+		.center-image img {
+			display: block;
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+
+		.scattered-photos {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100vh;
+			z-index: 1;
+			pointer-events: none;
+		}
+
+		.hover-photo {
+			position: absolute;
+			width: clamp(68px, 10.5vw, 132px);
+			transform: translate(var(--move-x, 0px), var(--move-y, 0px)) rotate(calc(var(--base-tilt, 0deg) + var(--hover-tilt, 0deg)));
+			transition: transform 180ms ease;
+			z-index: 1;
+			pointer-events: auto;
+		}
+
+		.hover-photo:hover {
+			transition-duration: 60ms;
+		}
+
+		.hover-photo img {
+			display: block;
+			width: 100%;
+			height: auto;
+			user-select: none;
+			pointer-events: none;
+		}
+	</style>
+</head>
+<body>
+	<main class="main-stage">
+		<div class="center-image">
+			<img src="flower/center.png" alt="Center image">
+		</div>
+	</main>
+
+	<div class="scattered-photos"></div>
+
+	<script>
+		const basePhotoSources = [
+			'flower/02a9553a-7a3c-4c2a-bf2e-c4b74758732c.png',
+			'flower/0e492932-4657-4188-80a3-729e7cab9f6c.png',
+			'flower/39155427-a0c5-4098-84f7-3afda6c0cc80.png',
+			'flower/44b00543-7248-4869-81b2-2000a9c596e9.png',
+			'flower/469e1ec2-9afc-4b6a-9910-a27271ac8a8d.png',
+			'flower/70838c92-d150-43ec-b1ff-02f7897eae00.png',
+			'flower/718678a2-1513-43d3-a8b6-79a3d3cf301a.png',
+			'flower/7df74a4b-86f3-44e8-90a3-7104c8e2d2d8.png',
+			'flower/809a3798-610e-44e3-b2fd-c431135e2b31.png',
+			'flower/8d4dd272-f498-410e-a5c1-519cea9319ad.png',
+			'flower/a6c95582-2269-49f7-9fc9-771601a05307.png',
+			'flower/b4ebb85c-e9ef-4e17-a270-98b798b34531.png',
+			'flower/b93a86d596aa1e826c1330c0ee0fda22.webp',
+			'flower/be3ce8d9-b0c5-4842-8e82-ee2bc1c02778.png',
+			'flower/cd9a7b2c-8a1a-4add-9bd1-689292540089.png',
+			'flower/d23e99f8-8018-4241-866b-2fb0e5c0d0f1.png',
+			'flower/e8cd5da9-8314-419d-8734-93d535bc1e1b.png'
+		];
+
+		const photoSources = [...basePhotoSources, ...basePhotoSources];
+
+		const scatteredPhotosContainer = document.querySelector('.scattered-photos');
+		const safeZoneRadius = 300;
+		const photoSize = 132;
+		const minDistance = 152;
+		const placedPhotos = [];
+
+		function isInSafeZone(x, y) {
+			const centerX = window.innerWidth / 2;
+			const centerY = window.innerHeight / 2;
+			const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+			return distance < safeZoneRadius;
+		}
+
+		function hasCollision(x, y) {
+			for (let i = 0; i < placedPhotos.length; i++) {
+				const photo = placedPhotos[i];
+				const dx = x - photo.x;
+				const dy = y - photo.y;
+				const distance = Math.sqrt(dx * dx + dy * dy);
+				if (distance < minDistance) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		function getRandomPosition() {
+			let x;
+			let y;
+			let attempts = 0;
+			const maxAttempts = 260;
+
+			do {
+				x = Math.random() * (window.innerWidth - photoSize);
+				y = Math.random() * (window.innerHeight - photoSize);
+				attempts++;
+			} while ((isInSafeZone(x, y) || hasCollision(x, y)) && attempts < maxAttempts);
+
+			if (attempts >= maxAttempts) {
+				return null;
+			}
+
+			placedPhotos.push({ x, y });
+			return { x, y };
+		}
+
+		function setupHoverPhoto(hoverPhoto) {
+			const position = getRandomPosition();
+			if (!position) {
+				return false;
+			}
+
+			const randomBaseTilt = (Math.random() - 0.5) * 36;
+			hoverPhoto.style.left = `${position.x}px`;
+			hoverPhoto.style.top = `${position.y}px`;
+			hoverPhoto.style.setProperty('--base-tilt', `${randomBaseTilt}deg`);
+
+			hoverPhoto.addEventListener('pointermove', (event) => {
+				const bounds = hoverPhoto.getBoundingClientRect();
+				const centerX = bounds.left + bounds.width / 2;
+				const centerY = bounds.top + bounds.height / 2;
+				const offsetX = (event.clientX - centerX) / bounds.width;
+				const offsetY = (event.clientY - centerY) / bounds.height;
+				const moveX = Math.max(-22, Math.min(22, -offsetX * 28));
+				const moveY = Math.max(-22, Math.min(22, -offsetY * 28));
+				const hoverTilt = Math.max(-8, Math.min(8, offsetX * 10));
+
+				hoverPhoto.style.setProperty('--move-x', `${moveX}px`);
+				hoverPhoto.style.setProperty('--move-y', `${moveY}px`);
+				hoverPhoto.style.setProperty('--hover-tilt', `${hoverTilt}deg`);
+			});
+
+			hoverPhoto.addEventListener('pointerleave', () => {
+				hoverPhoto.style.setProperty('--move-x', '0px');
+				hoverPhoto.style.setProperty('--move-y', '0px');
+				hoverPhoto.style.setProperty('--hover-tilt', '0deg');
+			});
+
+			return true;
+		}
+
+		function renderScatteredPhotos() {
+			scatteredPhotosContainer.innerHTML = '';
+			placedPhotos.length = 0;
+			const randomizedSources = [...photoSources].sort(() => Math.random() - 0.5);
+
+			for (let i = 0; i < randomizedSources.length; i++) {
+				const hoverPhoto = document.createElement('div');
+				hoverPhoto.className = 'hover-photo';
+				hoverPhoto.setAttribute('aria-label', 'Decorative flower image');
+
+				const img = document.createElement('img');
+				img.src = randomizedSources[i];
+				img.alt = 'Flower';
+
+				hoverPhoto.appendChild(img);
+				if (setupHoverPhoto(hoverPhoto)) {
+					scatteredPhotosContainer.appendChild(hoverPhoto);
+				}
+			}
+		}
+
+		function startReloading() {
+			if (reloadInterval) {
+				return;
+			}
+
+			renderScatteredPhotos();
+			reloadInterval = setInterval(renderScatteredPhotos, 300);
+		}
+
+		function stopReloading() {
+			if (!reloadInterval) {
+				return;
+			}
+
+			clearInterval(reloadInterval);
+			reloadInterval = null;
+		}
+
+		let reloadInterval = null;
+		startReloading();
+
+		document.addEventListener('dblclick', () => {
+			if (reloadInterval) {
+				stopReloading();
+			} else {
+				startReloading();
+			}
+		});
+	</script>
+</body>
+</html>

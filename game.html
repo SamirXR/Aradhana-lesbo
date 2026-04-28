@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title> Game</title>
+	<style>
+		:root {
+			--text: #1f2430;
+			--panel: rgba(255, 255, 255, 0.18);
+			--panel-border: rgba(255, 255, 255, 0.35);
+			--accent: #ff7aa8;
+			--accent-2: #ffd166;
+			--shadow: 0 20px 60px rgba(78, 82, 105, 0.18);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		html, body {
+			height: 100%;
+		}
+
+		body {
+			margin: 0;
+			font-family: Georgia, "Times New Roman", serif;
+			color: var(--text);
+			overflow: hidden;
+			background:
+				linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.18)),
+				url('background.png') center center / cover no-repeat fixed;
+		}
+
+		body::before {
+			content: '';
+			position: fixed;
+			inset: 0;
+			background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 58%);
+			pointer-events: none;
+		}
+
+		.game-shell {
+			position: relative;
+			width: 100%;
+			height: 100vh;
+			padding: 28px;
+			display: grid;
+			place-items: center;
+		}
+
+		.hud {
+			position: absolute;
+			top: 24px;
+			left: 24px;
+			display: flex;
+			gap: 12px;
+			flex-wrap: wrap;
+			z-index: 3;
+		}
+
+		.badge {
+			padding: 12px 16px;
+			border: 1px solid var(--panel-border);
+			border-radius: 999px;
+			background: var(--panel);
+			backdrop-filter: blur(14px);
+			box-shadow: var(--shadow);
+			font-size: 16px;
+			font-weight: 600;
+		}
+
+		.card {
+			position: relative;
+			z-index: 2;
+			width: min(540px, calc(100vw - 48px));
+			padding: 28px 26px 24px;
+			border-radius: 28px;
+			border: 1px solid var(--panel-border);
+			background: var(--panel);
+			backdrop-filter: blur(16px);
+			box-shadow: var(--shadow);
+			text-align: center;
+		}
+
+		h1 {
+			margin: 0 0 10px;
+			font-size: clamp(2rem, 4vw, 3.4rem);
+			line-height: 0.95;
+		}
+
+		p {
+			margin: 0;
+			font-size: 1rem;
+			line-height: 1.5;
+		}
+
+		.controls {
+			display: flex;
+			justify-content: center;
+			gap: 12px;
+			flex-wrap: wrap;
+			margin-top: 18px;
+		}
+
+		button {
+			appearance: none;
+			border: 0;
+			border-radius: 999px;
+			padding: 12px 18px;
+			font: inherit;
+			font-weight: 700;
+			cursor: pointer;
+			transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+			box-shadow: 0 10px 24px rgba(31, 36, 48, 0.14);
+		}
+
+		/* Make the No button clearly visible and above the overlay */
+		#noBtn {
+			position: relative;
+			z-index: 2;
+			background: linear-gradient(135deg, #fff1f8, #ff9bb5);
+			color: #2b2230;
+			border: 2px solid rgba(255,255,255,0.6);
+			box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+			transition: transform 160ms ease, box-shadow 160ms ease;
+			transform: translate(var(--no-shift-x, 0px), var(--no-shift-y, 0px));
+		}
+
+		button:hover {
+			transform: translateY(-2px);
+		}
+
+		#noBtn:hover {
+			transform: translate(var(--no-shift-x, 0px), var(--no-shift-y, 0px)) translateY(-2px);
+		}
+
+		#startBtn {
+			background: linear-gradient(135deg, var(--accent), #ff9cc0);
+			color: white;
+		}
+
+		#restartBtn {
+			background: linear-gradient(135deg, #fff1b8, var(--accent-2));
+			color: #5b4714;
+		}
+
+		.playfield {
+			position: absolute;
+			inset: 0;
+			z-index: 1;
+		}
+
+		.target {
+			position: absolute;
+			width: 84px;
+			height: 84px;
+			border-radius: 50%;
+			display: grid;
+			place-items: center;
+			font-size: 42px;
+			user-select: none;
+			cursor: pointer;
+			transition: transform 120ms ease, filter 120ms ease;
+			filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.2));
+		}
+
+		.target:hover {
+			transform: scale(1.08) rotate(8deg);
+		}
+
+		.target.pop {
+			animation: pop 240ms ease-out;
+		}
+
+		@keyframes pop {
+			0% { transform: scale(0.65); opacity: 0.4; }
+			70% { transform: scale(1.12); opacity: 1; }
+			100% { transform: scale(1); opacity: 1; }
+		}
+
+		.message {
+			margin-top: 14px;
+			font-size: 0.98rem;
+			min-height: 1.5em;
+			color: #475062;
+		}
+
+		.overlay {
+			position: absolute;
+			inset: 0;
+			display: grid;
+			place-items: center;
+			padding: 24px;
+			background: radial-gradient(circle at center, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03) 48%, rgba(255, 255, 255, 0) 70%);
+			z-index: 4;
+			pointer-events: none;
+		}
+
+		.overlay .card {
+			pointer-events: auto;
+		}
+
+		.hidden {
+			display: none;
+		}
+
+		.modal {
+			display: none;
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.8);
+			z-index: 1000;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.modal.active {
+			display: flex;
+		}
+
+		.modal img {
+			max-width: 90vw;
+			max-height: 90vh;
+			object-fit: contain;
+		}
+
+		@media (max-width: 700px) {
+			.game-shell {
+				padding: 18px;
+			}
+
+			.hud {
+				top: 14px;
+				left: 14px;
+				right: 14px;
+			}
+
+			.badge {
+				font-size: 14px;
+				padding: 10px 14px;
+			}
+
+			.target {
+				width: 72px;
+				height: 72px;
+				font-size: 36px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="game-shell">
+
+		<div class="modal" id="letterModal">
+			<img src="letteropen.png" alt="Open letter">
+		</div>
+
+		<div class="overlay" id="overlay">
+			<div class="card">
+				<h1>You are my prettiest girl</h1>
+				<p>Tell me the truth ; are you mine?</p>
+				<div class="controls" id="choiceArea">
+					<button id="yesBtn" type="button">Yes</button>
+					<button id="noBtn" type="button">No</button>
+				</div>
+				<div class="message" id="message">Hover over <strong>No</strong> if you dare !!!!</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		// Simple No-dodge + Yes behavior only
+		const yesBtn = document.getElementById('yesBtn');
+		const noBtn = document.getElementById('noBtn');
+		const choiceMessage = document.getElementById('message');
+
+		let noShiftX = 0;
+		let noShiftY = 0;
+		let lastPointer = null;
+		let lastRepelTime = 0;
+		let returnAnimId = null;
+
+		function setNoShift(x, y) {
+			noShiftX = x;
+			noShiftY = y;
+			noBtn.style.setProperty('--no-shift-x', `${noShiftX}px`);
+			noBtn.style.setProperty('--no-shift-y', `${noShiftY}px`);
+		}
+
+		function returnToOrigin() {
+			if (returnAnimId) clearTimeout(returnAnimId);
+			const step = () => {
+				noShiftX *= 0.94;
+				noShiftY *= 0.94;
+				if (Math.abs(noShiftX) < 0.5 && Math.abs(noShiftY) < 0.5) {
+					setNoShift(0, 0);
+					return;
+				}
+				noBtn.style.setProperty('--no-shift-x', `${noShiftX}px`);
+				noBtn.style.setProperty('--no-shift-y', `${noShiftY}px`);
+				returnAnimId = requestAnimationFrame(step);
+			};
+			returnAnimId = requestAnimationFrame(step);
+		}
+
+		(function initNo() {
+			const yesRect = yesBtn.getBoundingClientRect();
+			const noRect = noBtn.getBoundingClientRect();
+			const startingShiftX = Math.max(10, yesRect.width + 10 - noRect.width / 2);
+			setNoShift(startingShiftX, 0);
+		})();
+
+		function repelNoFrom(clientX, clientY, strength = 42) {
+			const rect = noBtn.getBoundingClientRect();
+			const centerX = rect.left + rect.width / 2;
+			const centerY = rect.top + rect.height / 2;
+			const dx = centerX - clientX;
+			const dy = centerY - clientY;
+			const distance = Math.max(1, Math.hypot(dx, dy));
+			const pushX = (dx / distance) * strength;
+			const pushY = (dy / distance) * strength;
+			setNoShift(noShiftX + pushX, noShiftY + pushY);
+		}
+
+		let lastMove = 0;
+		const DODGE_DISTANCE = 120;
+
+		document.addEventListener('mousemove', (ev) => {
+			lastPointer = { x: ev.clientX, y: ev.clientY };
+			const now = Date.now();
+			if (now - lastMove < 40) return;
+			lastMove = now;
+			const rect = noBtn.getBoundingClientRect();
+			const cx = rect.left + rect.width / 2;
+			const cy = rect.top + rect.height / 2;
+			const dx = ev.clientX - cx;
+			const dy = ev.clientY - cy;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+			if (dist < DODGE_DISTANCE) {
+				if (returnAnimId) clearTimeout(returnAnimId);
+				lastRepelTime = now;
+				repelNoFrom(ev.clientX, ev.clientY, 22);
+			} else if (now - lastRepelTime > 300) {
+				returnToOrigin();
+			}
+		});
+
+		noBtn.addEventListener('mouseenter', () => {
+			if (lastPointer) {
+				repelNoFrom(lastPointer.x, lastPointer.y, 28);
+			}
+		});
+
+		const letterModal = document.getElementById('letterModal');
+
+		yesBtn.addEventListener('click', () => {
+			choiceMessage.textContent = 'She chose YES — you win 💖';
+			yesBtn.disabled = true;
+			noBtn.disabled = true;
+			noBtn.style.opacity = '0.6';
+			yesBtn.style.transform = 'scale(1.06)';
+			setTimeout(() => { 
+				yesBtn.style.transform = '';
+				letterModal.classList.add('active');
+			}, 600);
+		});
+
+		letterModal.addEventListener('click', () => {
+			letterModal.classList.remove('active');
+		});
+
+		noBtn.addEventListener('click', () => {
+			choiceMessage.textContent = "You caught 'No' — are you sure? 😅";
+		});
+	</script>
+</body>
+</html>

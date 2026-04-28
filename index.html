@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Background</title>
+	<style>
+		:root {
+			--bg-base-1: #f3f1f2;
+			--bg-base-2: #efedef;
+			--blush-strong: rgba(244, 174, 211, 0.52);
+			--blush-soft: rgba(248, 198, 225, 0.35);
+			--card-shadow: 0 24px 60px rgba(153, 119, 138, 0.2);
+		}
+
+		body {
+			background:
+				radial-gradient(ellipse 34% 26% at 50% 52%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.55) 48%, rgba(255, 255, 255, 0) 100%),
+				radial-gradient(circle at 50% 28%, var(--blush-soft) 0%, rgba(248, 198, 225, 0) 60%),
+				radial-gradient(circle at 50% 75%, rgba(246, 188, 220, 0.38) 0%, rgba(246, 188, 220, 0) 56%),
+				linear-gradient(180deg, var(--bg-base-1) 0%, var(--bg-base-2) 100%);
+			margin: 0;
+			min-height: 100vh;
+			overflow: hidden;
+			position: relative;
+		}
+
+		body::before {
+			content: '';
+			position: fixed;
+			inset: 10% 18%;
+			background: radial-gradient(ellipse at center, var(--blush-strong) 0%, rgba(244, 174, 211, 0.14) 46%, rgba(244, 174, 211, 0) 100%);
+			filter: blur(38px);
+			opacity: 0.9;
+			pointer-events: none;
+		}
+
+		.main-stage {
+			position: relative;
+			min-height: 100vh;
+			display: grid;
+			place-items: center;
+			padding: 32px;
+			box-sizing: border-box;
+		}
+
+		.center-image {
+			position: relative;
+			z-index: 1;
+			max-width: 500px;
+			width: 95%;
+			pointer-events: none;
+		}
+
+		.center-image img {
+			display: block;
+			width: 100%;
+			height: auto;
+		}
+
+		.scattered-photos {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100vh;
+			pointer-events: none;
+		}
+
+		.hover-photo {
+			position: absolute;
+			width: clamp(60px, 10vw, 120px);
+			transform: translate(var(--move-x, 0px), var(--move-y, 0px)) rotate(calc(var(--base-tilt, 0deg) + var(--hover-tilt, 0deg)));
+			transition: transform 180ms ease;
+			z-index: 2;
+			pointer-events: auto;
+		}
+
+		.hover-photo:hover {
+			transition-duration: 60ms;
+		}
+
+		.hover-photo img {
+			display: block;
+			width: 100%;
+			height: auto;
+			user-select: none;
+			pointer-events: none;
+		}
+	</style>
+</head>
+<body>
+	<main class="main-stage">
+		<div class="center-image">
+			<img src="photos/birthday.png" alt="Happy Birthday Aliza">
+		</div>
+	</main>
+	
+	<!-- Scattered decorative images -->
+	<div class="scattered-photos"></div>
+	<script>
+		const photoSources = [
+			'photos/0765df33-a8f1-41a2-b389-59666dd47531.png',
+			'photos/351e8627-7ac2-4e0a-80f1-b5051213009d.png',
+			'photos/35e59ef5-1e21-4b93-aae9-128ab1dcb12c.png',
+			'photos/45277595-4319-46d6-851d-b5527be023b0.png',
+			'photos/4a91028b-6d9c-41de-a16b-466f33deb0ec.png',
+			'photos/4fe51594-9c6e-4815-8546-a0920d0483f4.png',
+			'photos/ca5b1e48-afd3-46d4-86e3-bcd5872fd315.png',
+			'photos/d00312d5-cd22-4a88-a4cd-8c45860c69a2.png',
+			'photos/d99a2e6c-c210-474c-8bcd-3bb326b9af97.png',
+			'photos/dcd4321c-eb8b-4f61-80e5-472879e1c5ce.png',
+			'photos/dde2582c-096b-4cbb-9786-6e82608e62c6.png'
+		];
+
+		const scatteredPhotosContainer = document.querySelector('.scattered-photos');
+		const centerImage = document.querySelector('.center-image');
+		const safeZoneRadius = 280; // Safe zone around center (pixels)
+		const photoSize = 120;
+		const minDistance = 150; // Minimum distance between photos
+		const placedPhotos = []; // Track placed photo positions and sources
+
+		function isInSafeZone(x, y, photoSize) {
+			const centerX = window.innerWidth / 2;
+			const centerY = window.innerHeight / 2;
+			const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+			return distance < safeZoneRadius;
+		}
+
+		function hasCollision(x, y, photoSize, photoSource) {
+			for (let photo of placedPhotos) {
+				const dx = x - photo.x;
+				const dy = y - photo.y;
+				const distance = Math.sqrt(dx * dx + dy * dy);
+				if (distance < minDistance) {
+					return true;
+				}
+				// Also prevent same image from being placed nearby
+				if (photo.source === photoSource && distance < minDistance * 1.5) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		function getRandomPosition(photoSize, photoSource) {
+			let x, y;
+			let attempts = 0;
+			const maxAttempts = 100;
+
+			do {
+				x = Math.random() * (window.innerWidth - photoSize);
+				y = Math.random() * (window.innerHeight - photoSize);
+				attempts++;
+			} while ((isInSafeZone(x, y, photoSize) || hasCollision(x, y, photoSize, photoSource)) && attempts < maxAttempts);
+
+			if (attempts < maxAttempts) {
+				placedPhotos.push({ x, y, source: photoSource });
+			}
+
+			return { x, y };
+		}
+
+		function setupHoverPhoto(hoverPhoto, photoSource) {
+			const position = getRandomPosition(photoSize, photoSource);
+			const randomBaseTilt = (Math.random() - 0.5) * 40;
+
+			hoverPhoto.style.left = `${position.x}px`;
+			hoverPhoto.style.top = `${position.y}px`;
+			hoverPhoto.style.setProperty('--base-tilt', `${randomBaseTilt}deg`);
+
+			hoverPhoto.addEventListener('pointermove', (event) => {
+				const bounds = hoverPhoto.getBoundingClientRect();
+				const centerX = bounds.left + bounds.width / 2;
+				const centerY = bounds.top + bounds.height / 2;
+				const offsetX = (event.clientX - centerX) / bounds.width;
+				const offsetY = (event.clientY - centerY) / bounds.height;
+				const moveX = Math.max(-24, Math.min(24, -offsetX * 28));
+				const moveY = Math.max(-24, Math.min(24, -offsetY * 28));
+				const hoverTilt = Math.max(-8, Math.min(8, offsetX * 10));
+
+				hoverPhoto.style.setProperty('--move-x', `${moveX}px`);
+				hoverPhoto.style.setProperty('--move-y', `${moveY}px`);
+				hoverPhoto.style.setProperty('--hover-tilt', `${hoverTilt}deg`);
+			});
+
+			hoverPhoto.addEventListener('pointerleave', () => {
+				hoverPhoto.style.setProperty('--move-x', '0px');
+				hoverPhoto.style.setProperty('--move-y', '0px');
+				hoverPhoto.style.setProperty('--hover-tilt', '0deg');
+			});
+		}
+
+		// Create 35 scattered photos (reusing the 11 images)
+		for (let i = 0; i < 35; i++) {
+			const hoverPhoto = document.createElement('div');
+			hoverPhoto.className = 'hover-photo';
+			hoverPhoto.setAttribute('aria-label', 'Decorative photo');
+
+			const photoSource = photoSources[i % photoSources.length];
+			const img = document.createElement('img');
+			img.src = photoSource;
+			img.alt = 'Photo';
+
+			hoverPhoto.appendChild(img);
+			scatteredPhotosContainer.appendChild(hoverPhoto);
+
+			setupHoverPhoto(hoverPhoto, photoSource);
+		}
+
+		function renderScatteredPhotos() {
+			scatteredPhotosContainer.innerHTML = '';
+			placedPhotos.length = 0;
+
+			for (let i = 0; i < 35; i++) {
+				const hoverPhoto = document.createElement('div');
+				hoverPhoto.className = 'hover-photo';
+				hoverPhoto.setAttribute('aria-label', 'Decorative photo');
+
+				const photoSource = photoSources[i % photoSources.length];
+				const img = document.createElement('img');
+				img.src = photoSource;
+				img.alt = 'Photo';
+
+				hoverPhoto.appendChild(img);
+				scatteredPhotosContainer.appendChild(hoverPhoto);
+
+				setupHoverPhoto(hoverPhoto, photoSource);
+			}
+		}
+
+		function startReloading() {
+			if (reloadInterval) {
+				return;
+			}
+
+			renderScatteredPhotos();
+			reloadInterval = setInterval(renderScatteredPhotos, 300);
+		}
+
+		function stopReloading() {
+			if (!reloadInterval) {
+				return;
+			}
+
+			clearInterval(reloadInterval);
+			reloadInterval = null;
+		}
+
+		let reloadInterval = null;
+		startReloading();
+
+		document.addEventListener('dblclick', () => {
+			if (reloadInterval) {
+				stopReloading();
+			} else {
+				startReloading();
+			}
+		});
+	</script>
+</body>
+</html>

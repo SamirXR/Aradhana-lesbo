@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Letter</title>
+	<style>
+		@import url('https://fonts.googleapis.com/css?family=Indie+Flower');
+		@import url('https://fonts.googleapis.com/css?family=Amatic+SC');
+
+		:root {
+			--bg-base-1: #fbf8ee;
+			--bg-base-2: #f3f0e3;
+			--blue-glow: rgba(137, 189, 236, 0.72);
+			--blue-glow-soft: rgba(163, 210, 246, 0.36);
+			--paper: #ece7e4;
+			--paper-edge: #b9b2ad;
+			--ink: #19313e;
+		}
+
+		body {
+			font-family: 'Indie Flower', cursive;
+			background:
+				radial-gradient(circle at 50% 50%, var(--blue-glow) 0%, var(--blue-glow-soft) 22%, rgba(173, 214, 246, 0.12) 40%, rgba(173, 214, 246, 0) 64%),
+				radial-gradient(ellipse 68% 62% at 50% 50%, rgba(255, 255, 255, 0.56) 0%, rgba(255, 255, 255, 0.18) 38%, rgba(255, 255, 255, 0) 72%),
+				linear-gradient(180deg, var(--bg-base-1) 0%, var(--bg-base-2) 100%);
+			margin: 0;
+			padding: 0;
+			min-height: 100vh;
+			overflow: hidden;
+			position: relative;
+			color: var(--ink);
+		}
+
+		body::before {
+			content: '';
+			position: fixed;
+			inset: 18% 24%;
+			background: radial-gradient(circle at center, rgba(118, 178, 232, 0.7) 0%, rgba(118, 178, 232, 0.3) 24%, rgba(118, 178, 232, 0.08) 46%, rgba(118, 178, 232, 0) 72%);
+			filter: blur(42px);
+			opacity: 0.78;
+			pointer-events: none;
+		}
+
+		::selection {
+			background: transparent;
+		}
+
+		h4 {
+			font-size: 26px;
+			line-height: 1.1;
+			font-family: 'Amatic SC', cursive;
+			margin: 0 0 8px;
+			letter-spacing: 0.02em;
+		}
+
+		.color1 {
+			color: #1bbc9b;
+		}
+
+		.color2 {
+			color: #c0392b;
+		}
+
+		.card {
+			color: var(--ink);
+			position: absolute;
+			z-index: 20;
+			top: 50%;
+			left: 50%;
+			width: 360px;
+			height: 470px;
+			background: linear-gradient(180deg, #ede9e5 0%, var(--paper) 100%);
+			transform-style: preserve-3d;
+			transform: translate(-50%, -50%) perspective(2000px);
+			box-shadow: inset 220px 0 40px rgba(0, 0, 0, 0.28), 0 28px 70px rgba(0, 0, 0, 0.18);
+			transition: transform 0.9s ease, box-shadow 0.9s ease;
+		}
+
+		.card:hover {
+			transform: translate(-50%, -50%) perspective(2000px) rotate(12deg) scale(1.08);
+			box-shadow: inset 30px 0 55px rgba(0, 0, 0, 0.22), 0 18px 90px rgba(0, 0, 0, 0.22);
+		}
+
+		.card::before {
+			content: '';
+			position: absolute;
+			top: -5px;
+			left: 0;
+			width: 100%;
+			height: 5px;
+			background: #c9c1bc;
+			transform-origin: bottom;
+			transform: skewX(-45deg);
+		}
+
+		.card::after {
+			content: '';
+			position: absolute;
+			top: 0;
+			right: -5px;
+			width: 5px;
+			height: 100%;
+			background: var(--paper-edge);
+			transform-origin: left;
+			transform: skewY(-45deg);
+		}
+
+		.card .imgBox {
+			width: 100%;
+			height: 100%;
+			position: relative;
+			transform-origin: left;
+			transition: transform 0.75s ease;
+		}
+
+		.card .bark {
+			position: absolute;
+			background: linear-gradient(180deg, #ece7e3 0%, #e4ddd8 100%);
+			width: 100%;
+			height: 100%;
+			opacity: 0;
+			transition: opacity 0.6s ease, box-shadow 0.6s ease;
+		}
+
+		.card .imgBox img {
+			display: block;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.card:hover .imgBox {
+			transform: rotateY(-132deg);
+		}
+
+		.card:hover .bark {
+			opacity: 1;
+			transition: 0.6s;
+			box-shadow: 300px 200px 100px rgba(0, 0, 0, 0.4) inset;
+		}
+
+		.card .details {
+			position: absolute;
+			top: 0;
+			left: 0;
+			box-sizing: border-box;
+			padding: 34px 30px 28px 26px;
+			z-index: -1;
+			margin-top: 0;
+		}
+
+		.card .details p {
+			font-size: 17px;
+			line-height: 1.22;
+			margin: 0 0 6px;
+			transform: rotate(-7deg);
+			padding: 0 0 0 18px;
+		}
+
+		.card .details h4 {
+			text-align: center;
+			padding: 0 10px;
+		}
+
+		.text-right {
+			text-align: right;
+		}
+
+		.card .details p:last-child {
+			margin-bottom: 0;
+		}
+
+		.side-photos {
+			position: fixed;
+			inset: 0;
+			width: 100%;
+			height: 100vh;
+			pointer-events: none;
+			z-index: 5;
+		}
+
+		.hover-photo {
+			position: absolute;
+			width: clamp(84px, 12vw, 156px);
+			transform: translate(var(--move-x, 0px), var(--move-y, 0px)) rotate(calc(var(--base-tilt, 0deg) + var(--hover-tilt, 0deg)));
+			transition: transform 180ms ease;
+			pointer-events: auto;
+		}
+
+		.hover-photo:hover {
+			transition-duration: 60ms;
+		}
+
+		.hover-photo img {
+			display: block;
+			width: 100%;
+			height: auto;
+			user-select: none;
+			pointer-events: none;
+		}
+	</style>
+</head>
+<body>
+	<div class="side-photos" aria-hidden="true"></div>
+	<div class="card">
+		<div class="imgBox">
+			<div class="bark"></div>
+			<img src="birthday.png" alt="Birthday card cover image">
+		</div>
+		<div class="details">
+<h4 class="color1">Hey Aradhana</h4>
+<h4 class="color2">A Message From Me</h4>
+<p></p>
+<p>I wanted to tell you something</p>
+<p>that's been on my heart.</p>
+<p></p>
+<p>Thanks for sticking with me.</p>
+<p>I'm so grateful for you.</p>
+<p></p>
+<p>Please don't do me wrong.</p>
+<p>I have hopes from you.</p>
+<p></p>
+<p>You mean a lot to me.</p>
+<p class="text-right">&hearts; Samir</p>
+		</div>
+	</div>
+	<script>
+		const photoSources = [
+			'cat/e25b4e36-73a2-438c-9d96-1e066ed572de.png',
+			'cat/9bbfa64a-aaa1-48b5-8488-5e6325f0e274.png',
+			'cat/9b0b9db2-a4c3-4f78-9b6d-3433e40560a4.png',
+			'cat/79239822-c868-4016-9a3b-f6f93d403ffe.png',
+			'cat/763777fc-a0d7-4941-9c28-e9466219811b.png',
+			'cat/6cd1c7d5-7121-4638-8599-fa7c8b0e9f98.png',
+			'cat/353940a4-0346-4fb5-9ba4-6d8278579078.png'
+		];
+
+		const sidePhotosContainer = document.querySelector('.side-photos');
+		const sidePlacements = [
+			{ side: 'left', top: '3%', left: '1%' },
+			{ side: 'left', top: '14%', left: '7%' },
+			{ side: 'left', top: '30%', left: '2%' },
+			{ side: 'left', top: '48%', left: '8%' },
+			{ side: 'left', top: '65%', left: '3%' },
+			{ side: 'left', top: '77%', left: '10%' },
+			{ side: 'right', top: '5%', right: '2%' },
+			{ side: 'right', top: '18%', right: '8%' },
+			{ side: 'right', top: '34%', right: '3%' },
+			{ side: 'right', top: '51%', right: '9%' },
+			{ side: 'right', top: '68%', right: '2%' },
+			{ side: 'right', top: '79%', right: '7%' },
+			{ side: 'left', top: '8%', left: '24%' },
+			{ side: 'left', top: '26%', left: '22%' },
+			{ side: 'left', top: '72%', left: '20%' },
+			{ side: 'right', top: '12%', right: '24%' },
+			{ side: 'right', top: '29%', right: '22%' },
+			{ side: 'right', top: '74%', right: '20%' }
+		];
+
+		function setupHoverPhoto(hoverPhoto) {
+			hoverPhoto.addEventListener('pointermove', (event) => {
+				const bounds = hoverPhoto.getBoundingClientRect();
+				const centerX = bounds.left + bounds.width / 2;
+				const centerY = bounds.top + bounds.height / 2;
+				const offsetX = (event.clientX - centerX) / bounds.width;
+				const offsetY = (event.clientY - centerY) / bounds.height;
+				const moveX = Math.max(-24, Math.min(24, -offsetX * 28));
+				const moveY = Math.max(-24, Math.min(24, -offsetY * 28));
+				const hoverTilt = Math.max(-8, Math.min(8, offsetX * 10));
+
+				hoverPhoto.style.setProperty('--move-x', `${moveX}px`);
+				hoverPhoto.style.setProperty('--move-y', `${moveY}px`);
+				hoverPhoto.style.setProperty('--hover-tilt', `${hoverTilt}deg`);
+			});
+
+			hoverPhoto.addEventListener('pointerleave', () => {
+				hoverPhoto.style.setProperty('--move-x', '0px');
+				hoverPhoto.style.setProperty('--move-y', '0px');
+				hoverPhoto.style.setProperty('--hover-tilt', '0deg');
+			});
+		}
+
+		sidePlacements.forEach((placement, index) => {
+			const hoverPhoto = document.createElement('div');
+			hoverPhoto.className = 'hover-photo';
+			hoverPhoto.setAttribute('aria-label', 'Decorative photo');
+			hoverPhoto.style.top = placement.top;
+			hoverPhoto.style[placement.side] = placement.side === 'left' ? placement.left : placement.right;
+			hoverPhoto.style.setProperty('--base-tilt', `${(Math.random() - 0.5) * 28}deg`);
+
+			const img = document.createElement('img');
+			img.src = photoSources[index % photoSources.length];
+			img.alt = 'Photo';
+
+			hoverPhoto.appendChild(img);
+			sidePhotosContainer.appendChild(hoverPhoto);
+			setupHoverPhoto(hoverPhoto);
+		});
+	</script>
+</body>
+</html>
